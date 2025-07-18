@@ -1,0 +1,17 @@
+﻿<PageTitle>Api Group</PageTitle>
+
+<h2>List of APIs Avaiable</h2>
+
+@foreach (ApiLink api in APIS)
+{
+	<ApiCard Api="@api"/>
+
+}
+
+@code {
+	List<ApiLink> APIS = new List<ApiLink>
+	{
+		new ApiLink("Seinfeld API", "https://api.mortensens.xyz/seinfeld/swagger"),
+		new ApiLink("KnowledgeCenter API", "https://api.mortensens.xyz/kc/swagger")
+	};
+}
