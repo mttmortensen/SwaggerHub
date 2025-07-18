@@ -1,0 +1,26 @@
+﻿<div class="container py-4">
+	<h2 class="mb-3 fw-bold" style="color: var(--swagger-dark);">@Group.GroupName</h2>
+</div>
+
+<div class="row g-4">
+	@foreach (ApiLink api in Group.Links)
+{
+	<div class="col-12 col-md-6 col-lg-4">
+		<ApiCard Api="@api"/>
+	</div>
+
+}
+</div>
+
+
+@code {
+	ApiGroup Group = new ApiGroup
+	{
+		GroupName = "Available APIs",
+		Links = new List<ApiLink>
+		{
+			new ApiLink("Seinfeld API", "https://api.mortensens.xyz/seinfeld/swagger"),
+			new ApiLink("KnowledgeCenter API", "https://api.mortensens.xyz/kc/swagger")
+		}
+	};
+}
