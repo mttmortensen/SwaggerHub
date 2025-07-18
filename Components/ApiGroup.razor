@@ -1,12 +1,17 @@
-﻿<PageTitle>Api Group</PageTitle>
+﻿<div class="container py-4">
+    <h2 class="mb-4 fw-bold text-center">Available APIs</h2>
+</div>
 
-<h2>List of APIs Avaiable</h2>
-
-@foreach (ApiLink api in APIS)
+<div class="row g-4">
+	@foreach (ApiLink api in APIS)
 {
-	<ApiCard Api="@api"/>
+	<div class="col-12 col-md-6 col-lg-4">
+		<ApiCard Api="@api"/>
+	</div>
 
 }
+</div>
+
 
 @code {
 	List<ApiLink> APIS = new List<ApiLink>

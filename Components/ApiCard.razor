@@ -1,8 +1,9 @@
-﻿<PageTitle>Api Title</PageTitle>
-
-<h3>@Api.Name</h3>
-
-<a href="@Api.URL">Swagger Link</a>
+﻿<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <h5 class="card-title">@Api.Name</h5>
+        <a href="@Api.URL" target="_blank" class="btn btn-primary">Open API</a>
+    </div>
+</div>
 
 @code {
 	[Parameter] public ApiLink Api { get; set; }
