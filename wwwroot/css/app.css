@@ -86,3 +86,27 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/*My Custom CSS*/
+:root {
+    --swagger-green: #85EA2D;
+    --swagger-dark: #121212;
+    --swagger-text-light: #f4f4f4;
+}
+
+body {
+    background-color: #f4f4f4;
+}
+
+
+.btn-swagger {
+    background-color: var(--swagger-green);
+    color: #000;
+    font-weight: bold;
+    border: none;
+}
+
+    .btn-swagger:hover {
+        background-color: #76d324;
+        color: #000;
+    }
