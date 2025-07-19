@@ -54,7 +54,7 @@ public class ApiGroup
 ```
 
 ## 🌍 Deployment
-- **Hosted on:** [https://api.mortensens.xyz/hub](https://api.mortensens.xyz/hub)
+- **Hosted on:** [https://api.mortensens.xyz/hub](https://api.mortensens.xyz/hub/)
 - **Reverse Proxy:** NGINX with SSL (via Cloudflare Tunnel)
 
 ---
