@@ -2,7 +2,7 @@
 
 A Blazor-based dashboard that aggregates multiple API endpoints in a clean, responsive interface using Bootstrap cards and grid layout.
 
-**Live:** [https://api.mortensens.xyz/hub](https://api.mortensens.xyz/hub)
+**Live:** [https://api.mortensens.xyz/hub](https://api.mortensens.xyz/hub/)
 
 ---
 
