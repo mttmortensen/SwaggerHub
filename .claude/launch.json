@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "swaggerhub-dev",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "SwaggerHub.csproj"],
+      "port": 5256
+    }
+  ]
+}
