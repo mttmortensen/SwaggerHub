@@ -11,4 +11,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="9.0.7" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- Production serves this app under /hub/ behind an nginx rewrite, but the SDK
+       always emits <base href="/" /> so local `dotnet run` still works at the root.
+       Patch the published index.html so publish output is deploy-ready as-is. -->
+  <Target Name="FixBaseHrefForHubPath" AfterTargets="Publish">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\Fix-BaseHref.ps1&quot; -PublishDir &quot;$(PublishDir.TrimEnd('\'))&quot;" />
+  </Target>
+
 </Project>
