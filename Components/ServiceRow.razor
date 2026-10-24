@@ -1,0 +1,42 @@
+<li class="svc-row">
+    <div class="svc-name">
+        <span class="name">@Status.Link.Name</span>
+        <span class="mono muted small">@Status.Link.Path@(Status.Version is null ? "" : $" · {Status.Version}")</span>
+    </div>
+    <span class="state state-@Status.State.ToString().ToLowerInvariant()"><span class="state-dot"></span>@StateLabel</span>
+    <div class="checks" role="img" aria-label="@ChecksLabel">
+        @for (var i = 0; i < ApiStatus.HistoryLength - Status.History.Count; i++)
+        {
+            <span class="tick"></span>
+        }
+        @foreach (var check in Status.History)
+        {
+            <span class="tick @TickClass(check)" title="@check.CheckedAt.ToString("HH:mm:ss") · @(check.Ok ? $"{check.LatencyMs} ms" : "failed")"></span>
+        }
+    </div>
+    <span class="mono">@(Status.LatencyMs is int ms ? $"{ms} ms" : "—")</span>
+    <Sparkline Values="@Latencies" />
+    <span class="mono">@(Status.PathCount?.ToString() ?? "—")@if (Status.PathCount.HasValue) {<span class="muted small"> · @Status.OperationCount ops</span>}</span>
+    <a class="btn-accent" href="@Status.Link.DocsUrl" target="_blank" rel="noopener">Open docs →</a>
+</li>
+
+@code {
+    [Parameter, EditorRequired] public ApiStatus Status { get; set; } = default!;
+
+    private string StateLabel => Status.State switch
+    {
+        ApiState.Operational => "Operational",
+        ApiState.Slow => "Slow",
+        ApiState.Down => "Down",
+        _ => "Checking"
+    };
+
+    private IReadOnlyList<int> Latencies => Status.History.Where(c => c.Ok).Select(c => c.LatencyMs).ToList();
+
+    private string ChecksLabel => Status.History.Count == 0
+        ? "No checks yet"
+        : $"{Status.History.Count(c => c.Ok)} of {Status.History.Count} recent checks succeeded";
+
+    private static string TickClass(CheckResult check) =>
+        !check.Ok ? "tick-down" : check.LatencyMs > ApiStatus.SlowThresholdMs ? "tick-slow" : "tick-ok";
+}

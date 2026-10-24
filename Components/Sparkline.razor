@@ -1,0 +1,25 @@
+<svg class="sparkline" viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">
+    @if (Values.Count > 1)
+    {
+        <path d="@PathData" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"></path>
+    }
+</svg>
+
+@code {
+    [Parameter] public IReadOnlyList<int> Values { get; set; } = Array.Empty<int>();
+
+    private string PathData
+    {
+        get
+        {
+            var min = Values.Min();
+            var span = Math.Max(Values.Max() - min, 1);
+            return string.Join(" ", Values.Select((v, i) =>
+            {
+                var x = i * 100.0 / (Values.Count - 1);
+                var y = 22 - (v - min) * 20.0 / span;
+                return FormattableString.Invariant($"{(i == 0 ? "M" : "L")}{x:0.#} {y:0.#}");
+            }));
+        }
+    }
+}
