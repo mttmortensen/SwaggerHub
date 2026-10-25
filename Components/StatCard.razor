@@ -1,0 +1,12 @@
+<div class="stat">
+    <div class="stat-label">@Label</div>
+    <div class="stat-value mono">@ChildContent</div>
+    <div class="stat-note @(Tone is null ? "" : $"tone-{Tone}")">@Note</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+    [Parameter] public string? Note { get; set; }
+    [Parameter] public string? Tone { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

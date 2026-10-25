@@ -1,6 +1,170 @@
 ﻿@page "/"
-@using SwaggerHub.Components
+@implements IDisposable
+@inject ApiHealthService Health
 
-<PageTitle>SwaggerHub</PageTitle>
+<PageTitle>Swagger Hub</PageTitle>
 
-<ApiGroupComp/>
+<div class="page-head">
+    <div>
+        <div class="eyebrow">Overview</div>
+        <h1>Every API, one console.</h1>
+    </div>
+    <div class="live">
+        <span class="live-dot @(checking ? "is-checking" : "")" aria-hidden="true"></span>
+        <span class="mono" aria-live="polite">@LiveText</span>
+        <button type="button" class="btn-ghost" @onclick="RefreshAsync" disabled="@checking">Refresh</button>
+    </div>
+</div>
+
+<section class="stats" aria-label="Key stats">
+    <StatCard Label="APIs reachable" Note="@ReachableNote" Tone="@(down.Any() ? "warn" : "ok")">
+        @Reachable<span class="unit">/@statuses.Count</span>
+    </StatCard>
+    <StatCard Label="Median response" Note="@SlowestNote">
+        @if (MedianLatency is int median)
+        {
+            @median<span class="unit"> ms</span>
+        }
+        else
+        {
+            <span class="unit">—</span>
+        }
+    </StatCard>
+    <StatCard Label="Endpoints documented" Note="@($"across {SpecsLoaded} APIs")">
+        @TotalPaths
+    </StatCard>
+    <StatCard Label="Operations" Note="@MethodSummary">
+        @TotalOperations
+    </StatCard>
+</section>
+
+<section class="panel" aria-labelledby="svc-h">
+    <div class="panel-head">
+        <h2 id="svc-h">Services</h2>
+        <span class="mono muted small">Recent checks · one bar per check this session</span>
+    </div>
+    <div class="table-scroll">
+        <div class="svc-table">
+            <div class="svc-row svc-row-head" aria-hidden="true">
+                <span>Service</span><span>Status</span><span>Recent checks</span><span>Response</span><span>Trend</span><span>Endpoints</span><span></span>
+            </div>
+            <ul class="svc-list">
+                @foreach (var status in statuses)
+                {
+                    <ServiceRow Status="status" />
+                }
+            </ul>
+        </div>
+    </div>
+</section>
+
+<div class="panel-grid">
+    <section class="panel panel-pad" aria-labelledby="share-h">
+        <h2 id="share-h">Endpoints by API</h2>
+        @foreach (var status in statuses)
+        {
+            var share = TotalPaths == 0 ? 0 : (status.PathCount ?? 0) * 100.0 / TotalPaths;
+            <div class="bar-item">
+                <div class="bar-label"><span>@status.Link.Name</span><span class="mono muted">@(status.PathCount?.ToString() ?? "—")</span></div>
+                <div class="bar-track"><div class="bar-fill" style="width: @share.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></div></div>
+            </div>
+        }
+    </section>
+    <section class="panel panel-pad" aria-labelledby="ops-h">
+        <h2 id="ops-h">Operations by method</h2>
+        @foreach (var method in ApiHealthService.Methods)
+        {
+            var count = MethodCount(method);
+            var share = TotalOperations == 0 ? 0 : count * 100.0 / TotalOperations;
+            <div class="bar-item">
+                <div class="bar-label"><span class="method method-@method">@method.ToUpperInvariant()</span><span class="mono muted">@count</span></div>
+                <div class="bar-track"><div class="bar-fill method-bg-@method" style="width: @share.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)%"></div></div>
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private readonly List<ApiStatus> statuses = ApiCatalog.Apis.Select(a => new ApiStatus(a)).ToList();
+    private readonly CancellationTokenSource disposed = new();
+    private bool checking;
+    private DateTime? lastChecked;
+
+    private IEnumerable<ApiStatus> down => statuses.Where(s => s.State == ApiState.Down);
+    private IEnumerable<ApiStatus> withSpec => statuses.Where(s => s.PathCount.HasValue);
+
+    private int Reachable => statuses.Count(s => s.IsUp);
+    private int SpecsLoaded => withSpec.Count();
+    private int TotalPaths => withSpec.Sum(s => s.PathCount!.Value);
+    private int TotalOperations => withSpec.Sum(s => s.OperationCount);
+    private int MethodCount(string method) => withSpec.Sum(s => s.Operations.GetValueOrDefault(method));
+
+    private string LiveText => checking
+        ? "Checking…"
+        : lastChecked is DateTime t ? $"Checked {t:HH:mm:ss} · every 60s" : "Waiting…";
+
+    private string ReachableNote => statuses.All(s => s.State == ApiState.Checking)
+        ? "Checking…"
+        : down.Any() ? $"Down · {string.Join(", ", down.Select(s => s.Link.Name))}" : "All responding";
+
+    private int? MedianLatency
+    {
+        get
+        {
+            var values = statuses.Where(s => s.LatencyMs.HasValue).Select(s => s.LatencyMs!.Value).OrderBy(v => v).ToList();
+            if (values.Count == 0) return null;
+            var mid = values.Count / 2;
+            return values.Count % 2 == 1 ? values[mid] : (values[mid - 1] + values[mid]) / 2;
+        }
+    }
+
+    private string SlowestNote
+    {
+        get
+        {
+            var slowest = statuses.Where(s => s.LatencyMs.HasValue).MaxBy(s => s.LatencyMs);
+            return slowest is null ? "Spec fetch from your browser" : $"Slowest · {slowest.Link.Name} {slowest.LatencyMs} ms";
+        }
+    }
+
+    private string MethodSummary => TotalOperations == 0
+        ? "—"
+        : string.Join(" · ", ApiHealthService.Methods.Where(m => MethodCount(m) > 0).Select(m => $"{m.ToUpperInvariant()} {MethodCount(m)}"));
+
+    protected override void OnInitialized() => _ = PollAsync(disposed.Token);
+
+    private async Task PollAsync(CancellationToken token)
+    {
+        await RefreshAsync();
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+                await RefreshAsync();
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (checking) return;
+        checking = true;
+        StateHasChanged();
+
+        await Task.WhenAll(statuses.Select(async s =>
+        {
+            await Health.CheckAsync(s);
+            StateHasChanged();
+        }));
+
+        lastChecked = DateTime.Now;
+        checking = false;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        disposed.Cancel();
+        disposed.Dispose();
+    }
+}
